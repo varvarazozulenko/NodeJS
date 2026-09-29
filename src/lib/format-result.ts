@@ -4,12 +4,14 @@ import { type Response } from "express"
 // TODO: быть построже с типами formatSuccess
 export function formatSuccess(
     response: Response,
-    data: { [k: string]: object },
-    code: number
+    data: unknown,
+    code: number,
+    meta?: object
 ) {
     response.status(code).json({
         success: true,
-        data
+        data,
+        ...(meta? {meta} : {})
     })
 }
 
@@ -19,7 +21,7 @@ export function formatError(
     response: Response,
     message: string,
     code: number = 400,
-    details: object = {}
+    details: unknown = null
 ) {
     response.status(code).json({
         success: false,

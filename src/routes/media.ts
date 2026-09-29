@@ -17,7 +17,14 @@ const uploadMiddlewareDisk = multer({
             callback(null, name)
         }
     }),
-    limits: { fileSize: 1024 * 1024 * 2 }
+    limits: { fileSize: 1024 * 1024 * 2 },
+    fileFilter: (_, file, callback) => {
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'text/plain']
+        if (allowedMimeTypes.includes(file.mimetype)){
+            callback(null, true)
+        }
+        callback(new Error('Недопустимый mimeType'))
+    }
 })
 
 

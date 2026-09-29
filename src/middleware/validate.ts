@@ -3,22 +3,26 @@ import * as z from 'zod'
 
 type Kind = "body" | "query"
 
-type RequestParsed = Request & {
-    bodyParsed?: object
-    queryParsed?: object
+export interface ValidatedRequest<B = any, Q = any> extends Request {
+    bodyParsed?: B
+    queryParsed?: Q
 }
 
 export default function validate(schema: z.ZodType, kind: Kind) {
-    return (request: RequestParsed, _: Response, next: NextFunction) => {
-        const result = z.safeParse(schema, request[kind])
+    return (request: ValidatedRequest, _: Response, next: NextFunction) => {
+        const result = schema.safeParse(request[kind])
 
-        if (result.error) {
+        if (!result.success) {
             next(result.error)
             return
         }
 
-        // TODO TypeScript
-        request[`${kind}Parsed`] = result.data
+        if (kind === "body") {
+            request.bodyParsed = result.data
+        } else {
+            request.queryParsed = result.data
+        }
+
         next()
     }
 }

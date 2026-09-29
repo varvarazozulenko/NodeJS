@@ -3,31 +3,33 @@ import path from 'node:path'
 
 import logger from './middleware/logging.js'
 import errorHandler from './middleware/error-handling.js'
-import { usersRouter } from './routes/users.js'
-import { mediaRouter } from './routes/media.js'
+import { productsRouter } from './routes/products.js'
 
 const app = express()
 
-const staticPath = path.join(import.meta.dirname, '..', 'assets')
-app.use('/media', express.static(staticPath))
+const staticMediaFolder = path.join(process.cwd(), 'assets', 'media')
+app.use('/media', express.static(staticMediaFolder))
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
 app.use(logger)
 
-app.use(usersRouter)
-app.use(mediaRouter)
+app.use('/api/products', productsRouter)
 
-app.get('/', (_, response) => {
-    response.end('ok')
+app.get('/', (_: Request, res: Response) => {
+    res.json({ message: "API каталога товаров работает" })
 })
 
 app.use((_: Request, response: Response) => {
     response.status(404).json({
-        message: "Ресурс не найден"
+        success: false,
+        error: "Ресурс не найден"
     })
 })
 
 app.use(errorHandler)
 
-app.listen(3000)
+app.listen(3000, () => {
+    console.log()
+})
