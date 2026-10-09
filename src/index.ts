@@ -13,11 +13,11 @@ const app = express()
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use('/static', express.static(path.join(import.meta.dirname, '..', 'assets', 'uploads')))
+app.use('/static', express.static(path.join(process.cwd(),'assets', 'uploads')))
 
 app.use(logger)
 
-app.use('api/products', productsRouter)
+app.use('/api/products', productsRouter)
 
 app.use((_request: express.Request, _response: express.Response, next: express.NextFunction) => {
     const error = new Error('Ресурс не найден') as ErrorWithCode

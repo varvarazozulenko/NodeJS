@@ -3,11 +3,11 @@ import { type Response } from "express"
 type SuccessCode = `2${number}${number}`
 type ErrorCode = `${4 | 5}${number}${number}`
 
-export function formatSuccess(
+export function formatSuccess<T>(
     response: Response,
-    data: { [k: string]: object },
+    data: T,
     code: SuccessCode
-) {
+): void {
     response.status(Number(code)).json({
         success: true,
         data
@@ -18,8 +18,8 @@ export function formatError(
     response: Response,
     message: string,
     code: ErrorCode = "400",
-    details: object = {}
-) {
+    details: unknown = {}
+): void {
     response.status(Number(code)).json({
         success: false,
         error: message,

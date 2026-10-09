@@ -22,6 +22,4 @@ export default function (error: ErrorWithCode, _: Request, response: Response, n
         success: false,
         error: error.message
     })
-
-    next()
 }
