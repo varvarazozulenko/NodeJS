@@ -8,6 +8,7 @@ import { ru } from "zod/locales"
 
 import { productsRouter } from './routes/products.js'
 import { authRouter } from './routes/auth.js'
+import { usersRouter } from './routes/users.js'
 import { logger, errorHandler } from './middleware/index.js'
 import { globalRateLimit } from './middleware/rate-limit.js'
 import type { ErrorWithCode } from './types.js'
@@ -30,14 +31,15 @@ app.use(helmet({
 
 app.use(globalRateLimit)
 app.use(cookieParser())
-app.use(express.json())
+app.use(express.json({ limit: '10kb' }))
 app.use(express.urlencoded({ extended: true }))
-app.use('/static', express.static(path.join(import.meta.dirname, '..', 'assets', 'uploads')))
+app.use('/static', express.static(path.join(process.cwd(), 'assets', 'uploads')))
 
 app.use(logger)
 
 app.use('/api/auth', authRouter)
 app.use('/api/products', productsRouter)
+app.use('/api/users', usersRouter)
 
 app.use((_request: express.Request, _response: express.Response, next: express.NextFunction) => {
     const error = new Error('Ресурс не найден') as ErrorWithCode

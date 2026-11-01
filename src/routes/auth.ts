@@ -1,51 +1,54 @@
-import { Router, type Response } from "express"
-import * as z from 'zod'
-import jwt, { type JwtPayload } from 'jsonwebtoken'
+import { Router, type Response } from "express";
+import * as z from "zod";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 
-import { prisma } from "../prisma.js"
+import { prisma } from "../prisma.js";
 
-import { formatSuccess } from '../middleware/format-result.js'
-import authenticate from '../middleware/authenticate.js'
-import authorize from "../middleware/authorize.js"
-import owns from "../middleware/owns.js"
-import { authRateLimit } from "../middleware/rate-limit.js"
+import { formatSuccess } from "../middleware/format-result.js";
+import authenticate from "../middleware/authenticate.js";
+import authorize from "../middleware/authorize.js";
+import owns from "../middleware/owns.js";
+import { authRateLimit } from "../middleware/rate-limit.js";
 
-import { generateTokens, hashPassword } from "../helpers/auth.js"
-import { createUserSchema, loginUserSchema } from "../schemas/auth.schema.js"
-import type { RequestWithAuth } from '../types.js'
+import { generateTokens, hashPassword } from "../helpers/auth.js";
+import { createUserSchema, loginUserSchema } from "../schemas/auth.schema.js";
+import type { RequestWithAuth } from "../types.js";
 
+export const authRouter = Router();
 
-export const authRouter = Router()
+authRouter.use(authRateLimit);
 
-authRouter.use(authRateLimit)
-
-authRouter.post('/register', async (request: RequestWithAuth, response: Response) => {
-    const userData = z.parse(createUserSchema, request.body)
+authRouter.post(
+  "/register",
+  async (request: RequestWithAuth, response: Response) => {
+    const userData = z.parse(createUserSchema, request.body);
 
     const prismaData = {
-        email: userData.email,
-        password: await hashPassword(userData.password),
-        role: userData.role
-    }
-
+      email: userData.email,
+      password: await hashPassword(userData.password),
+      role: userData.role,
+    };
+    
     if (!userData.role) {
-        // @ts-expect-error
-        delete prismaData['role']
+        delete (prismaData as { role?: string })['role']
     }
 
     const createdUser = await prisma.account.create({
-        data: prismaData
-    })
+      data: prismaData,
+    });
 
-    formatSuccess(response, { createdUser }, "201")
-})
+    formatSuccess(response, { createdUser }, "201");
+  },
+);
 
-authRouter.post('/login', async (request: RequestWithAuth, response: Response) => {
-    const loginData = z.parse(loginUserSchema, request.body)
+authRouter.post(
+  "/login",
+  async (request: RequestWithAuth, response: Response) => {
+    const loginData = z.parse(loginUserSchema, request.body);
 
-    const hashedPassword = await hashPassword(loginData.password)
+    const hashedPassword = await hashPassword(loginData.password);
 
-    const user = await prisma.account.findUnique({
+    const user = await prisma.account.findFirst({
         where: {
             email: loginData.email,
             password: hashedPassword
@@ -53,85 +56,98 @@ authRouter.post('/login', async (request: RequestWithAuth, response: Response) =
     })
 
     if (!user) {
-        throw new Error('Пользователь не найден')
+      throw new Error("Пользователь не найден");
     }
 
     const { accessToken, refreshToken } = generateTokens({
+        id: user.id,
         email: user.email,
-        role: user.role ?? "user"
+        role: (user.role ?? "user") as "user" | "moderator"
     })
 
-    response.cookie('refresh', refreshToken, {
-        httpOnly: true,
-        sameSite: "strict",
-        maxAge: 2 * 24 * 3600 * 1000
-    })
+    response.cookie("refresh", refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 2 * 24 * 3600 * 1000,
+    });
 
-    formatSuccess(response, { accessToken }, "200")
-})
+    formatSuccess(response, { accessToken }, "200");
+  },
+);
 
-authRouter.post('/refresh', async (request: RequestWithAuth, response: Response) => {
-    const refreshToken = request.cookies['refresh']
+authRouter.post(
+  "/refresh",
+  async (request: RequestWithAuth, response: Response) => {
+    const refreshToken = request.cookies?.["refresh"];
 
     if (!refreshToken) {
-        throw new Error('Токен не передан')
+      throw new Error("Токен не передан");
     }
 
-    const payload = jwt.verify(refreshToken, process.env.JWT_SECRET) as JwtPayload
+    const payload = jwt.verify(
+      refreshToken,
+      process.env.JWT_SECRET,
+    ) as JwtPayload;
 
-    if (!payload['email']) {
-        throw new Error('Отсутствуют пользовательские данные')
+    if (!payload["email"]) {
+      throw new Error("Отсутствуют пользовательские данные");
     }
 
     const user = await prisma.account.findUnique({
-        where: {
-            email: payload['email']
-        }
-    })
+      where: {
+        email: payload["email"],
+      },
+    });
 
     if (!user) {
-        throw new Error('Пользователь не найден')
+      throw new Error("Пользователь не найден");
     }
 
     const { accessToken, refreshToken: newRefreshToken } = generateTokens({
-        email: user.email,
-        role: user.role ?? "user"
-    })
+      id: user.id,
+      email: user.email,
+      role: (user.role ?? "user") as "user" | "moderator"
+    });
 
-    response.cookie('refresh', newRefreshToken, {
-        httpOnly: true,
-        sameSite: "strict",
-        maxAge: 2 * 24 * 3600 * 1000
-    })
+    response.cookie("refresh", newRefreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 2 * 24 * 3600 * 1000,
+    });
 
-    formatSuccess(response, { accessToken }, "200")
-})
+    formatSuccess(response, { accessToken }, "200");
+  },
+);
 
-authRouter.post('/logout', (_request: RequestWithAuth, response: Response) => {
-    response.clearCookie('refresh')
-    formatSuccess(response, { message: "Успешный выход" }, "200")
-})
+authRouter.post("/logout", (_request: RequestWithAuth, response: Response) => {
+  response.clearCookie("refresh");
+  formatSuccess(response, { message: "Успешный выход" }, "200");
+});
 
-authRouter.get('/me', authenticate, (request: RequestWithAuth, response: Response) => {
-    const result = { user: request.user! }
+authRouter.get(
+  "/me",
+  authenticate,
+  (request: RequestWithAuth, response: Response) => {
+    const result = { user: request.user! };
 
-    formatSuccess(response, result, "200")
-})
+    formatSuccess(response, result, "200");
+  },
+);
 
 authRouter.delete(
-    '/:email', 
-    authenticate, 
-    authorize('delete:account'), 
-    owns('account', 'email', 'email'),
-    async (request: RequestWithAuth, response: Response) => {
-        const email = request.params['email'] as string
+  "/:email",
+  authenticate,
+  authorize("delete:account"),
+  owns("account", "email", "email"),
+  async (request: RequestWithAuth, response: Response) => {
+    const email = request.params["email"] as string;
 
-        await prisma.account.delete({
-            where: {
-                email
-            }
-        })
+    await prisma.account.delete({
+      where: {
+        email,
+      },
+    });
 
-        formatSuccess(response, { message: "Аккаунт удалён" }, "202")
-    }
-)
+    formatSuccess(response, { message: "Аккаунт удалён" }, "202");
+  },
+);

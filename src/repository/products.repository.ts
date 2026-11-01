@@ -1,64 +1,53 @@
 import * as z from 'zod'
 import { prisma } from '../prisma.js'
-
 import { ProductsRepository } from "./abstract.js";
-import { productSchema, createProductInputSchema, getProductOutputSchema, getProductsInputSchema, getProductsWithMetaOutputSchema } from '../schemas/products.schema.js'
+import {
+    productSchema,
+    createProductInputSchema,
+    getProductOutputSchema,
+    getProductsInputSchema,
+    getProductsWithMetaOutputSchema
+} from '../schemas/products.schema.js'
 import { products } from "../data.js";
 
 type Product = z.output<typeof productSchema>
 
 class ProductsRepositorySqlite extends ProductsRepository<false> {
     override async add(record: z.output<typeof createProductInputSchema>): Promise<z.output<typeof getProductOutputSchema>> {
-        try {
-            const { account, ...rest } = await prisma.product.create({
-                data: {
-                    ...record.body,
-                    account: {
-                        connect: {
-                            email: record.headers.Authorization
-                        }
+        const product = await prisma.product.create({
+            data: {
+                ...record.body,
+                account: {
+                    connect: {
+                        id: 1
                     }
-                },
-                include: {
-                    account: {
-                        select: {
-                            email: true
-                        }
+                }
+            },
+            include: {
+                account: {
+                    select: {
+                        email: true
                     }
-                },
-            })
+                }
+            }
+        })
 
-            return { ...rest, email: account.email }
-        } catch (error) {
-            throw error
-        }
+        return { ...product, email: product.account.email }
     }
 
-    override getAll(input: z.output<typeof getProductsInputSchema>): Promise<z.output<typeof getProductsWithMetaOutputSchema>> {
+    override getAll(_input: z.output<typeof getProductsInputSchema>): Promise<z.output<typeof getProductsWithMetaOutputSchema>> {
         return Promise.resolve({
-            data: [
-                {
-                    id: 1,
-                    name: "bloose",
-                    category: "clothing",
-                    description: "xl",
-                    price: 4200,
-                    imageUrl: null,
-                    accountId: 1,
-                    archived: false,
-                    createdAt: new Date(2022, 8, 10)
-                }
-            ],
+            data: [],
             meta: {
                 limit: 10,
                 page: 1,
                 pages: 1,
-                total: 1
+                total: 0
             }
         })
     }
 
-    override async getOne(id: number | string): Promise<z.output<typeof getProductOutputSchema>> {
+    override async getOne(_id: number | string): Promise<z.output<typeof getProductOutputSchema>> {
         return Promise.resolve({
             id: 1,
             name: "bloose",
@@ -73,7 +62,7 @@ class ProductsRepositorySqlite extends ProductsRepository<false> {
         })
     }
 
-    override async delete(id: number | string): Promise<void> {
+    override async delete(_id: number | string): Promise<void> {
         return
     }
 }

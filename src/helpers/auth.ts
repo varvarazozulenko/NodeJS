@@ -1,28 +1,27 @@
 import { scrypt } from 'node:crypto'
 import jwt from 'jsonwebtoken'
-import type { RequestAuth } from '../types.js'
+import type { UserPayload } from '../types.js'
 
 export const hashPassword = (password: string): Promise<string> => new Promise((resolve, reject) => {
-    scrypt(password, process.env.SALT, 32, (error, result) => {
+    const salt = process.env.SALT || 'default-salt-key-minimum-16-bytes'
+    scrypt(password, salt, 32, (error, result) => {
         if (error) {
             reject(error)
+            return
         }
         resolve(result.toString('hex'))
     })
 })
 
-export const generateTokens = (payload: NonNullable<RequestAuth['user']>) => {
-    const accessToken = jwt.sign(
-        payload,
-        process.env.JWT_SECRET,
-        { expiresIn: "15m" }
-    )
+export const generateTokens = (payload: UserPayload) => {
+    const secret = process.env.JWT_SECRET
 
-    const refreshToken = jwt.sign(
-        payload,
-        process.env.JWT_SECRET,
-        { expiresIn: "2d" }
-    )
+    if (!secret) {
+        throw new Error('JWT_SECRET не задан в переменных окружения .env')
+    }
+
+    const accessToken = jwt.sign(payload, secret, { expiresIn: "15m" })
+    const refreshToken = jwt.sign(payload, secret, { expiresIn: "2d" })
 
     return { accessToken, refreshToken }
 }

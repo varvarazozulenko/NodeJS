@@ -11,15 +11,18 @@ export type BaseEntity = {
 }
 
 export type DataWithMeta<T> = {
-    data: Partial<T>[],
+    data: T[],
     meta: z.infer<typeof metaSchema>
 }
 
+export type UserPayload = {
+    id: number
+    email: string
+    role: "user" | "moderator"
+}
+
 export type RequestAuth = {
-    user?: {
-        email: string,
-        role: "user" | "moderator"
-    }
+    user?: UserPayload
 }
 
 export type RequestWithAuth = Request & RequestAuth

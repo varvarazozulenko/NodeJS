@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken"
 import { Prisma } from "../../generated/prisma/client.js"
 import type { ErrorWithCode } from "../types.js"
 
-export default function (error: ErrorWithCode, _: Request, response: Response, next: NextFunction): void {
+export default function (error: ErrorWithCode, _: Request, response: Response, _next: NextFunction): void {
     console.error(error)
 
     if (error instanceof jwt.TokenExpiredError) {
@@ -35,20 +35,21 @@ export default function (error: ErrorWithCode, _: Request, response: Response, n
         if (error.code === "P2002") {
             response.status(409).json({
                 success: false,
-                error: "Unique constraint failed"
+                error: "Пользователь с таким email уже существует"
             })
+            return
         }
-        return
     }
 
     if (process.env['DEBUG']) {
         console.error(error.stack)
     }
 
-    response.status(Number(error.code || "400")).json({
-        success: false,
-        error: error.message
-    })
+    const parsed = Number(error.code)
+    const status = (!isNaN(parsed) && parsed >= 400 && parsed <= 599) ? parsed : 400
 
-    next()
+    response.status(status).json({
+        success: false,
+        error: error.message || "Ошибка сервера"
+    })
 }

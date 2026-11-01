@@ -20,6 +20,7 @@
     "@types/mime-types": "^3.0.1",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.20.3",
+    "prisma": "^7.10.1",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   },
@@ -35,7 +36,6 @@
     "jsonwebtoken": "^9.0.3",
     "mime-types": "^3.0.2",
     "multer": "^2.4.0",
-    "prisma": "^6.19.3",
     "zod": "^4.6.5"
   }
 }
