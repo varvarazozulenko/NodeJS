@@ -28,7 +28,7 @@ export default function authorize(rule: Permission) {
 
         if (!hasRights) {
             const error = new Error('Недостаточно прав')
-            // @ts-expect-error статус-код 403 Forbidden
+            // @ts-expect-error статус-код 403 
             error.code = "403"
             return next(error) 
         }

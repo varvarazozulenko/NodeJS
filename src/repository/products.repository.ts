@@ -16,12 +16,11 @@ class ProductsRepositorySqlite extends ProductsRepository<false> {
     override async add(record: z.output<typeof createProductInputSchema>): Promise<z.output<typeof getProductOutputSchema>> {
         const product = await prisma.product.create({
             data: {
-                ...record.body,
-                account: {
-                    connect: {
-                        id: 1
-                    }
-                }
+                name: record.body.name,
+                price: record.body.price,
+                category: record.body.category,
+                description: record.body.description ?? null,
+                accountId: 1
             },
             include: {
                 account: {
@@ -32,7 +31,18 @@ class ProductsRepositorySqlite extends ProductsRepository<false> {
             }
         })
 
-        return { ...product, email: product.account.email }
+        return {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            category: product.category,
+            description: product.description,
+            imageUrl: product.imageUrl,
+            archived: product.archived,
+            createdAt: product.createdAt,
+            accountId: product.accountId,
+            email: product.account.email
+        }
     }
 
     override getAll(_input: z.output<typeof getProductsInputSchema>): Promise<z.output<typeof getProductsWithMetaOutputSchema>> {
@@ -107,9 +117,21 @@ class ProductsRepositoryMemory extends ProductsRepository<true> {
 
     override add(record: z.output<typeof createProductInputSchema>): z.output<typeof getProductOutputSchema> {
         const lastId = this.products.at(-1)?.id ?? 0
-        this.products.push({ ...record.body, id: lastId + 1, archived: false, accountId: 1, createdAt: new Date() })
+        const newProduct: Product = {
+            id: lastId + 1,
+            name: record.body.name,
+            price: record.body.price,
+            category: record.body.category,
+            description: record.body.description ?? null,
+            imageUrl: null,
+            archived: false,
+            accountId: 1,
+            createdAt: new Date()
+        }
 
-        return { ...this.products.at(-1)!, email: "test@example.com" }
+        this.products.push(newProduct)
+
+        return { ...newProduct, email: "test@example.com" }
     }
 
     override delete(id: number): void {

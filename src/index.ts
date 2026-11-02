@@ -29,7 +29,7 @@ app.use(helmet({
     }
 }))
 
-app.use(globalRateLimit)
+app.use(globalRateLimit) 
 app.use(cookieParser())
 app.use(express.json({ limit: '10kb' }))
 app.use(express.urlencoded({ extended: true }))

@@ -17,7 +17,7 @@ export const getManyProductsInputSchema = z.object({
 export const createProductInputSchema = z.object({
     body: z.object({
         name: z.string().min(2).max(100),
-        price: z.coerce.number().positive(), // coerce сам превратит строку "80000" в число 80000!
+        price: z.coerce.number().positive(), 
         category: z.enum(['electronics', 'clothing', 'food', 'other']),
         description: z.string().max(500).optional().nullable()
     })
